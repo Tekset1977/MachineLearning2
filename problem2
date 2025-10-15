@@ -1,0 +1,77 @@
+# ======================================
+# Problem 2: Logistic Regression with Regularization on Diabetes Dataset
+# ======================================
+# Same diabetes.csv, but using L2 weight penalty (C < 1)
+# ======================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, confusion_matrix, ConfusionMatrixDisplay
+)
+
+# Load dataset
+df = pd.read_csv("diabetes.csv")
+if "Outcome" not in df.columns:
+    raise ValueError("Expected a column named 'Outcome' in diabetes.csv")
+
+X = df.drop(columns=["Outcome"]).values
+y = df["Outcome"].values
+
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train logistic regression with regularization
+# Smaller C => stronger L2 penalty (weight decay)
+log_reg_reg = LogisticRegression(max_iter=1000, solver="lbfgs", C=0.1, penalty="l2")
+log_reg_reg.fit(X_train_scaled, y_train)
+
+# Predictions
+y_pred_reg = log_reg_reg.predict(X_test_scaled)
+
+# Metrics
+acc = accuracy_score(y_test, y_pred_reg)
+prec = precision_score(y_test, y_pred_reg)
+rec = recall_score(y_test, y_pred_reg)
+f1 = f1_score(y_test, y_pred_reg)
+
+print("\n=== Problem 2: Diabetes Dataset (With L2 Regularization, C=0.1) ===")
+print(f"Accuracy : {acc:.3f}")
+print(f"Precision: {prec:.3f}")
+print(f"Recall   : {rec:.3f}")
+print(f"F1 Score : {f1:.3f}")
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred_reg)
+ConfusionMatrixDisplay(cm).plot(cmap="Greens")
+plt.title("Confusion Matrix – Diabetes Logistic Regression (L2 Regularization)")
+plt.show()
+#for some reason plotting doesnt work, so we try belome
+try:
+    plt.show(block=True)       # shows if GUI backend is available
+except Exception:
+    plt.savefig("confusion_matrix_problem2.png")  # fallback for WSL headless mode
+    print("Confusion matrix saved as confusion_matrix_problem2.png")
+
+# Compare model weights (effect of regularization)
+feature_names = df.columns[:-1]
+coefs_no_reg = pd.Series(log_reg_reg.coef_[0], index=feature_names)
+plt.figure(figsize=(10, 5))
+coefs_no_reg.plot(kind="bar")
+plt.title("Feature Weights with L2 Regularization (C=0.1)")
+plt.xlabel("Features")
+plt.ylabel("Weight Coefficient")
+plt.tight_layout()
+plt.show()

@@ -1,0 +1,87 @@
+# ======================================
+# Problem 1: Logistic Regression on Diabetes Dataset
+# ======================================
+# Assumes "diabetes.csv" is in the same directory
+# and contains a binary column 'Outcome' (0 = no diabetes, 1 = diabetes)
+# ======================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, confusion_matrix, ConfusionMatrixDisplay
+)
+
+# Load dataset
+df = pd.read_csv("diabetes.csv")
+if "Outcome" not in df.columns:
+    raise ValueError("Expected a column named 'Outcome' in diabetes.csv")
+
+X = df.drop(columns=["Outcome"]).values
+y = df["Outcome"].values
+
+# Train/test split (80/20)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Feature scaling
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train logistic regression (default = no strong penalty)
+log_reg = LogisticRegression(max_iter=1000, solver="lbfgs")
+log_reg.fit(X_train_scaled, y_train)
+
+# Predictions
+y_pred = log_reg.predict(X_test_scaled)
+
+# Metrics
+acc = accuracy_score(y_test, y_pred)
+prec = precision_score(y_test, y_pred)
+rec = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+
+print("\n=== Problem 1: Diabetes Dataset (No Regularization) ===")
+print(f"Accuracy : {acc:.3f}")
+print(f"Precision: {prec:.3f}")
+print(f"Recall   : {rec:.3f}")
+print(f"F1 Score : {f1:.3f}")
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+ConfusionMatrixDisplay(cm).plot(cmap="Blues")
+plt.title("Confusion Matrix – Diabetes Logistic Regression (No Regularization)")
+plt.show()
+
+# Training loss and accuracy (simulated)
+losses, accs = [], []
+model = LogisticRegression(max_iter=1, warm_start=True, solver="saga")
+
+for i in range(1, 101):
+    model.max_iter = i
+    model.fit(X_train_scaled, y_train)
+    y_prob = model.predict_proba(X_train_scaled)[:, 1]
+    loss = -np.mean(y_train * np.log(y_prob + 1e-9) + (1 - y_train) * np.log(1 - y_prob + 1e-9))
+    accs.append(model.score(X_train_scaled, y_train))
+    losses.append(loss)
+
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.plot(losses)
+plt.title("Training Loss over Iterations (Problem 1)")
+plt.xlabel("Iteration")
+plt.ylabel("Loss")
+
+plt.subplot(1, 2, 2)
+plt.plot(accs)
+plt.title("Training Accuracy over Iterations (Problem 1)")
+plt.xlabel("Iteration")
+plt.ylabel("Accuracy")
+plt.tight_layout()
+plt.show()
